@@ -20,6 +20,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 lemmatizer = WordNetLemmatizer()
 import collections
 from collections import OrderedDict
+import datetime
+import time
+import pickle
 #import spacy
 #nlp = spacy.load('en')  
 
@@ -101,8 +104,8 @@ def load_data(input_file):
     with open(input_file, "r") as sentencesfile:
         reader = csv.reader(map(lambda line:line,sentencesfile), delimiter = ",")
         for row in reader:
-            qstn = str(row[0])
-            ans = str(row[1])
+            qstn = str(row[5])
+            ans = str(row[6])
             normalized_text = normalize_text(qstn, False)
             questions_processed.append(normalized_text)
             qsnt_proc.append(qstn)
@@ -350,6 +353,8 @@ def generate_response(query, w2v_sent_list, tfidif_sent_list, model_qstns, gener
 #            print(resp)
 #        print('Please select the applicable item (e.g. 1,2...). Select NA in case none of the choices are applicable.')
 #        response_followup = True
+        
+        
     else:
         response = "Sorry I am unable to understand this query. Could you please elaborate?"
         print("Sorry I am unable to understand this query. Could you please elaborate?")
@@ -401,49 +406,6 @@ def get_best_responses(dict_similarity_w2v, dict_similarity_tfidf):
 
 
 
-# In[10]:
-
-
-#############################################load data from csv
-# =============================================================================
-# processed_qstns, pro_qsnts_norm, qstns, ans = load_data('D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\Q&A-50.csv')
-# #print(processed_qstns[:10])
-# #print(pro_qsnts_norm[:5])
-# #print(pro_qsnts_norm[:5])
-# #model_qstns = create_word2vecmodel(processed_qstns)
-# #print(model_qstns)
-# 
-# 
-# # In[11]:
-# 
-# 
-# #############################################training models on the question set
-# #model on questions
-# #model_qstns = create_word2vecmodel(processed_qstns)
-# #model_qstns.save('w2v.model')
-# #generic google model
-# os.chdir("D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\"
-#          )
-# generic_w2v_model = 'GoogleNews-vectors-negative300.bin'
-# #generic_w2v_model = 'knowledge-vectors-skipgram1000.bin'
-# generic_model = gensim.models.KeyedVectors.load_word2vec_format(generic_w2v_model, binary=True)
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# model_qstns = gensim.models.Word2Vec.load('D:\\Syntel\\Work\\Hackathon\\Nasscom-hackathon\\src\\w2v.model')
-# 
-# #training tfidf model
-# model_qstns_tfidf = create_tfidfmodel(pro_qsnts_norm)
-# #model for pos tagging
-# #custom_sent_tokenizer = PunktSentenceTokenizer(qstns)   
-# 
-# w2v_sent_list = createw2v_sentencevec_list(qstns,model_qstns,generic_model, model_qstns_tfidf)
-# tfidif_sent_list = createtfidf_sentencevec_list(qstns,model_qstns_tfidf)
-# =============================================================================
 
 
 # In[ ]:
@@ -462,25 +424,53 @@ def update_training_data(query):
         print('Query ignored. Thank you!') 
         
         
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("Start time is ", st)
         
-processed_qstns, pro_qsnts_norm, qstns, ans = load_data('D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\Q&A-50.csv')
+processed_qstns, pro_qsnts_norm, qstns, ans = load_data('agri-dataset.csv')
 
-os.chdir("D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\"
-         )
+#os.chdir("D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\")
+
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("Load data is ", st)
+
 generic_w2v_model = 'GoogleNews-vectors-negative300.bin'
 #generic_w2v_model = 'knowledge-vectors-skipgram1000.bin'
-generic_model = gensim.models.KeyedVectors.load_word2vec_format(generic_w2v_model, binary=True)
+generic_model = gensim.models.KeyedVectors.load_word2vec_format(generic_w2v_model, binary=True, limit=1000000000)
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("Generic model is ", st)
 
-model_qstns = gensim.models.KeyedVectors.load_word2vec_format('D:\\Syntel\\Work\\Hackathon\\Nasscom-hackathon\\src\\w2v.model')
+model_qstns = gensim.models.Word2Vec.load('w2v.model')
+#model_qstns = create_word2vecmodel(processed_qstns)
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("W2V model is ", st)
+#model_qstns.save('w2v.model')
+
 
 #training tfidf model
-model_qstns_tfidf = create_tfidfmodel(pro_qsnts_norm)
+model_qstns_tfidf = pickle.load(open("tfidf_model.pickle", "rb"))
+#model_qstns_tfidf = create_tfidfmodel(pro_qsnts_norm)
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("TFIDF model is ", st)
+#pickle.dump(model_qstns_tfidf, open('tfidf_model.pickle', 'wb'))
 #model for pos tagging
 
 w2v_sent_list = createw2v_sentencevec_list(qstns,model_qstns,generic_model, model_qstns_tfidf)
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("W2V sentence list is ", st)
 tfidif_sent_list = createtfidf_sentencevec_list(qstns,model_qstns_tfidf)
+
+ts = time.time()
+st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+print("W2V sentence list is ", st)
+
 count = 1
-#end_text = "exit"
 response_followup = False
 prev_query = ""
 print('Hi, How may I help you?')
@@ -489,59 +479,9 @@ print('Hi, How may I help you?')
         
 
 def query_interface(query):
-#    if(query.upper() == end_text.upper()):
-#        print('exiting chat..............')
-#        break
+	print('Query: ', query)
     best_indexes, best_scores, response_followup, response = generate_response(query, w2v_sent_list, tfidif_sent_list, model_qstns, generic_model, model_qstns_tfidf)
-#    if(response_followup):
-#        prev_query = query
-#        response_followup = False
-#        query = input("Please enter your confirmation number: ")
-#        update_training_data(query)
-#    print('----------------chat ends-------------------')
-#    count = count+1
-#    best_indexes, best_scores, response_followup = generate_response(query, w2v_sent_list, tfidif_sent_list, model_qstns, generic_model, model_qstns_tfidf)
     return response;
-#    processed_qstns, pro_qsnts_norm, qstns, ans = load_data('D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\Q&A-50.csv')
-#
-#    os.chdir("D:\\Syntel\\Work\Hackathon\\Nasscom-hackathon\\dataset\\"
-#             )
-#    generic_w2v_model = 'GoogleNews-vectors-negative300.bin'
-#    #generic_w2v_model = 'knowledge-vectors-skipgram1000.bin'
-#    generic_model = gensim.models.KeyedVectors.load_word2vec_format(generic_w2v_model, binary=True)
-#    
-#    model_qstns = gensim.models.Word2Vec.load('D:\\Syntel\\Work\\Hackathon\\Nasscom-hackathon\\src\\w2v.model')
-#    
-#    #training tfidf model
-#    model_qstns_tfidf = create_tfidfmodel(pro_qsnts_norm)
-#    #model for pos tagging
-#    
-#    w2v_sent_list = createw2v_sentencevec_list(qstns,model_qstns,generic_model, model_qstns_tfidf)
-#    tfidif_sent_list = createtfidf_sentencevec_list(qstns,model_qstns_tfidf)
-#    count = 1
-#    end_text = "exit"
-#    response_followup = False
-##    prev_query = ""
-#    print('Hi, How may I help you?')
-#    while(True):1
-        
-        #print('----------------chat ', count)
-#        query = input("Please enter your query: ")
-        #print(normalize_text(query))
-#        if(query.upper() == end_text.upper()):
-#            print('exiting chat..............')
-#            break
-#        best_indexes, best_scores, response_followup = generate_response(query, w2v_sent_list, tfidif_sent_list, model_qstns, generic_model, model_qstns_tfidf)
-#        if(response_followup):
-##            prev_query = query
-#            response_followup = False
-#            query = input("Please enter your confirmation number: ")
-#            update_training_data(query)
-#        print('----------------chat ends-------------------')
-#        count = count+1
-        
-#if  __name__ == '__main__':
-#    query_interface(query)
     
     
 
